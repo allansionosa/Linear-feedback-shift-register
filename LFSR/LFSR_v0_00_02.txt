@@ -1,0 +1,78 @@
+title LFSR
+participant Erlang Shell as ES
+participant LFSR as L
+
+ES -> L: Start_Link
+note over L: wait
+ES -> LFSR :Hexadecimal Message, Iteration
+
+note over L: data_input
+L -> L: Message = string:strip(io:get_line("Input Hexadecimal Message: "), right, $\n),
+L -> L: Number_of_Iteration = list_to_integer(string:strip(io:get_line("Number of Iteration: "), right, $\n)),
+    
+note over L: sixteen_bit_partitioning
+L -> L: Message_Partitioned_Alpha = lists:nth(1,tuple_to_list(lists:split(16,Message))),
+L -> L:    Message_Partitioned_Bravo = lists:nth(2,tuple_to_list(lists:split(16,Message)))
+
+note over L: head_binary_to_integer_storing
+L -> L: Message_Partitioned_Alpha_Integer_to_Binary_Storage_Padded= Message_Partitioned_Alpha_Storage \n ++ [binary_to_integer(<<Message_Partitioned_Alpha_Head_Alter>>, 16)],
+L -> L: Message_Partitioned_Bravo_Integer_to_Binary_Storage_Padded= Message_Partitioned_Bravo_Storage \n ++ [binary_to_integer(<<Message_Partitioned_Bravo_Head_Alter>>, 16)],
+
+
+note over L: tail_integer_to_binary_seize
+L -> L: Message_Partitioned_Alpha_Tail_Alter, Message_Partitioned_Bravo_Tail_Alter
+Alt Empty state 
+L -> L: Message_Partitioned_Alpha_Binary_to_Integer_Storage_Padded, \n Message_Partitioned_Bravo_Binary_to_Integer_Storage_Padded
+    note over L: register_tapping
+else Non- Empty State
+L -> L: Message_Partitioned_Alpha_Tail_Alter, Message_Partitioned_Bravo_Tail_Alter
+note over L: head_binary_to_integer_storing
+end
+
+note over L: register_tapping
+L -> L: Second_Tapped= [lists:nth(2, X) bxor lists:nth(16, X)|| \n X <- [Message_Partitioned_Alpha_Binary_to_Integer_Storage_Padded,Message_Partitioned_Bravo_Binary_to_Integer_Storage_Padded]],
+L -> L: Third_Tapped=  [lists:nth(3, X) bxor lists:nth(16, X)|| \n X <- [Message_Partitioned_Alpha_Binary_to_Integer_Storage_Padded,Message_Partitioned_Bravo_Binary_to_Integer_Storage_Padded]],
+L -> L: Fifth_Tapped=  [lists:nth(5, X) bxor lists:nth(16, X)|| \n X <- [Message_Partitioned_Alpha_Binary_to_Integer_Storage_Padded,Message_Partitioned_Bravo_Binary_to_Integer_Storage_Padded]],
+
+note over L: alpha_register_shifting
+L -> L:  First_Shift  = lists:sublist(Message_Partitioned_Alpha_Binary_to_Integer_Storage_Padded,1) \n ++ [lists:nth(1,Second_Tapped)]++[lists:nth(1,Third_Tapped)] ++ lists:nthtail(3,Message_Partitioned_Alpha_Binary_to_Integer_Storage_Padded),
+L -> L:  Second_Shift  = lists:sublist(First_Shift,4) ++ [lists:nth(1,Fifth_Tapped)] ++ lists:nthtail(5, First_Shift),
+L -> L:  Alpha_Shift = lists:nthtail(15,Second_Shift) ++ lists:sublist(Second_Shift,15),
+
+note over L: bravo_register_shifting
+L -> L: First_Shift  = lists:sublist(Message_Partitioned_Bravo_Binary_to_Integer_Storage_Padded,1) \n ++ [lists:nth(2,Second_Tapped)] ++ [lists:nth(2,Third_Tapped)] ++ lists:nthtail(3,Message_Partitioned_Bravo_Binary_to_Integer_Storage_Padded),
+L -> L: Second_Shift  = lists:sublist(First_Shift,4) ++ [lists:nth(2,Fifth_Tapped)] ++ lists:nthtail(5, First_Shift),
+L -> L:  Bravo_Shift = lists:nthtail(15,Second_Shift) ++ lists:sublist(Second_Shift,15),
+
+note over L: stream_generate
+L -> L: Number_of_Iteration
+
+Alt No Recurrence State
+L -> L: Message_Partitioned_Alpha_Binary_to_Integer_Storage_Padded,[] \n Message_Partitioned_Bravo_Binary_to_Integer_Storage_Padded,[]
+note over L: head_integer_to_binary_storing
+else Recurrence State
+L -> L: [Alpha_Shift, Bravo_Shift, Loops_Remaining]
+note over L: register_tapping
+end
+
+note over L: head_integer_to_binary_storing
+L->L: Message_Partitioned_Alpha_Integer_to_Binary_Storage_Padded= Message_Partitioned_Alpha_Storage \n ++ [integer_to_binary(Message_Partitioned_Alpha_Head_Alter, 16)],
+L->L:   Message_Partitioned_Bravo_Integer_to_Binary_Storage_Padded= Message_Partitioned_Bravo_Storage \n ++ [integer_to_binary(Message_Partitioned_Bravo_Head_Alter, 16)],
+    
+note over L: tail_integer_to_binary_seize
+L ->L: Message_Partitioned_Alpha_Tail_Alter,Message_Partitioned_Bravo_Tail_Alter
+
+
+Alt Empty state 
+L -> L: Message_Partitioned_Alpha_Integer_to_Binary_Storage_Padded, \n Message_Partitioned_Bravo_Integer_to_Binary_Storage_Padded
+note over L: Hexadecimal LFSR Output
+
+else Non- Empty State
+L -> L: Message_Partitioned_Alpha_Tail_Alter, Message_Partitioned_Bravo_Tail_Alter
+note over L: head_integer_to_binary_storing
+end
+ 
+note over L: Hexadecima LFSR Output
+L -> ES: Hexadecimal Output LFSR
+
+note over L: wait
